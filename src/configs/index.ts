@@ -1,11 +1,25 @@
 import { readFileSync } from "fs";
-import { OAuth2ClientOptions } from "google-auth-library";
+
+interface GoogleCredentials {
+    clientId: string;
+    clientSecret: string;
+    redirectUri: string;
+    scopes: string[];
+}
+
+interface LineConfig {
+    accessToken: string;
+}
 
 export default class Configuration {
-    public readonly googleCredentials: OAuth2ClientOptions = {
+    public readonly googleCredentials: GoogleCredentials = {
         clientId: "",
         clientSecret: "",
         redirectUri: "",
+        scopes: []
+    }
+    public readonly line: LineConfig = {
+        accessToken: ""
     }
 
     constructor() {
@@ -14,6 +28,11 @@ export default class Configuration {
             clientId: credentials.web.client_id,
             clientSecret: credentials.web.client_secret,
             redirectUri: credentials.web.redirect_uris[0],
+            scopes: credentials.web.scopes
+        }
+        const config = JSON.parse(readFileSync('config.json', 'utf8'));
+        this.line = {
+            accessToken: config.line.access_token
         }
     }
 }

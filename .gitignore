@@ -6,3 +6,7 @@ node_modules
 
 /generated/prisma
 dev.db
+
+token.json
+credentials.json
+config.json

@@ -6,7 +6,7 @@ const credentials = JSON.parse(readFileSync('credentials.json', 'utf8'));
 const oauth2Client = new google.auth.OAuth2(credentials.web.client_id, credentials.web.client_secret, credentials.web.redirect_uris[0]);
 
 // Access scopes for two non-Sign-In scopes: Read-only Drive activity and Google Calendar.
-const scopes = ['https://www.googleapis.com/auth/drive.metadata.readonly', 'https://www.googleapis.com/auth/calendar.readonly'];
+const scopes = ['https://www.googleapis.com/auth/drive.metadata', 'https://www.googleapis.com/auth/drive'];
 
 // Generate a secure random state value.
 const state = randomBytes(32).toString('hex');

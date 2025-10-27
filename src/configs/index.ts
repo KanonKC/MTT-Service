@@ -11,6 +11,11 @@ interface LineConfig {
     accessToken: string;
 }
 
+interface GeminiConfig {
+    apiKey: string;
+    model: string;
+}
+
 export default class Configuration {
     public readonly googleCredentials: GoogleCredentials = {
         clientId: "",
@@ -19,7 +24,11 @@ export default class Configuration {
         scopes: []
     }
     public readonly line: LineConfig = {
-        accessToken: ""
+        accessToken: "",
+    }
+    public readonly gemini: GeminiConfig = {
+        apiKey: "",
+        model: "",
     }
 
     constructor() {
@@ -33,6 +42,10 @@ export default class Configuration {
         const config = JSON.parse(readFileSync('config.json', 'utf8'));
         this.line = {
             accessToken: config.line.access_token
+        }
+        this.gemini = {
+            apiKey: config.gemini.api_key,
+            model: config.gemini.model
         }
     }
 }

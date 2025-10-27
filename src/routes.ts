@@ -5,14 +5,22 @@ import GoogleAuthController from './controllers/google-auth/google-auth.controll
 import Configuration from './configs';
 import { OAuth2Client } from 'google-auth-library';
 import GoogleDrive from './externals/google-drive/google-drive';
-import GoogleAuth from './externals/google-auth/google-auth';
 import GoogleDriveController from './controllers/google-drive/google-drive.controller';
 import LineController from './controllers/line/line.controller';
 import LINE from './externals/line/line';
+import ScheduleService from './services/schedule/schedule.service';
+import Gemini from './externals/gemini/gemini';
+import AuthService from './services/auth/auth.service';
+import AuthController from './controllers/auth/auth.controller';
+import GoogleAuth from './externals/google-auth/google-auth';
+import BookRepository from './repositories/book/book.repository';
+import { PrismaClient } from '@prisma/client';
+import BookService from './services/book/book.service';
 
 const server = fastify();
 
 const config = new Configuration();
+const prisma = new PrismaClient();
 
 const oauth2Client = new OAuth2Client(config.googleCredentials);
 const token = JSON.parse(readFileSync('token.json', 'utf8'));
@@ -20,21 +28,28 @@ oauth2Client.setCredentials(token);
 
 const drive = google.drive({version: 'v3', auth: oauth2Client});
 
-const googleAuth = new GoogleAuth(config, oauth2Client);
 const googleDrive = new GoogleDrive(oauth2Client, drive);
 const line = new LINE(config);
+const gemini = new Gemini(config);
+const googleAuth = new GoogleAuth(config, oauth2Client);
+
+const bookRepository = new BookRepository(prisma);
+
+const bookSvc = new BookService(googleDrive, bookRepository, gemini);
+const scheduleSvc = new ScheduleService(gemini, line, bookSvc, bookRepository);
+const authSvc = new AuthService(googleAuth);
 
 const googleAuthCtrl = new GoogleAuthController(googleAuth);
 const googleDriveCtrl = new GoogleDriveController(googleDrive);
-const lineCtrl = new LineController(line);
-
+const lineCtrl = new LineController(line, scheduleSvc);
+const authCtrl = new AuthController(authSvc);
 
 server.get('/', async (req, res) => {
   res.send('Hello World');
 });
 
-server.get('/google/login', googleAuthCtrl.generateOAuthUrl.bind(googleAuthCtrl));
-server.get('/oauth2callback', googleAuthCtrl.login.bind(googleAuthCtrl));
+server.get('/google/login', authCtrl.getGoogleOAuthUrl.bind(authCtrl));
+server.get('/oauth2callback', authCtrl.loginWithGoogle.bind(authCtrl));
 server.get('/files', googleDriveCtrl.listFiles.bind(googleDriveCtrl));
 server.post('/files/pdf', googleDriveCtrl.uploadPDF.bind(googleDriveCtrl));
 server.post('/line/webhook', lineCtrl.handleWebhook.bind(lineCtrl));

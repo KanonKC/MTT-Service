@@ -1,5 +1,6 @@
 build/
 node_modules
+env/
 
 # Keep environment variables out of version control
 .env
@@ -10,3 +11,8 @@ dev.db
 token.json
 credentials.json
 config.json
+
+*.png
+*.jpeg
+*.jpg
+*.pdf

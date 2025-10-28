@@ -39,7 +39,6 @@ export default class LINE {
     }
 
     async getContent(messageId: string) {
-        console.log('getContent', messageId);
         const response = await this.lineDataAPI.get(`/message/${messageId}/content`, {
             responseType: 'arraybuffer',
         });

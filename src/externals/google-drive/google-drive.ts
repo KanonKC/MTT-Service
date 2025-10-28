@@ -18,7 +18,8 @@ export default class GoogleDrive {
         const result = await this.drive.files.list({
             pageSize: pageSize ?? 5,
             q: q ?? undefined,
-            fields: 'nextPageToken, files(id, name, parents, mimeType)'
+            fields: 'nextPageToken, files(id, name, parents, mimeType)',
+            orderBy: 'createdTime desc'
         });
         return result.data
     }

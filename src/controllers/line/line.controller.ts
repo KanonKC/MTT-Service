@@ -1,16 +1,16 @@
 import LINE from "@/externals/line/line";
 import { LineWebhookRequest } from "@/externals/line/request";
-import { UpdateLessonResponse } from "@/services/schedule/response";
-import ScheduleService from "@/services/schedule/schedule.service";
+import { UpdateLessonResponse } from "@/services/lesson/response";
 import { FastifyReply, FastifyRequest } from "fastify";
 import { writeFileSync } from "fs";
+import LessonService from "@/services/lesson/lesson.service";
 
 export default class LineController {
     private readonly line: LINE;
-    private readonly scheduleService: ScheduleService;
-    constructor(line: LINE, scheduleService: ScheduleService) {
+    private readonly lessonService: LessonService;
+    constructor(line: LINE, lessonService: LessonService) {
         this.line = line;
-        this.scheduleService = scheduleService;
+        this.lessonService = lessonService;
     }
 
     async handleWebhook(req: FastifyRequest<{ Body: LineWebhookRequest }>, res: FastifyReply) {
@@ -19,22 +19,11 @@ export default class LineController {
             res.status(200).send(destination).type('text/plain');
         } else {
             const event = events[0];
-            let lessonResponse: UpdateLessonResponse | null = null;
-            if (event.message.type === 'image') {
-                lessonResponse = await this.scheduleService.cacheLineLessonImage(event);
-            } else if (event.message.type === 'text' && event.message.text) {
-                lessonResponse = await this.scheduleService.cacheLineLessonMessage(event);
-            }
-            
-            console.log('lessonResponse', lessonResponse);
-            if (lessonResponse) {
-                let replyMessage = `Class: ${lessonResponse?.class}\nSubject: ${lessonResponse?.subject}`;
-                if (lessonResponse.book) {
-                    replyMessage += `\nBook: ${lessonResponse.book.google_drive_url}`;
-                }
+            const lesson = await this.lessonService.updateByLineMessage(event);
+            if (lesson) {
+                const replyMessage =  this.lessonService.generateReplyMessage(lesson);
                 await this.line.replyMessage(event.replyToken, replyMessage);
             }
-            // await this.scheduleService.updateByMessage(event.message.text || '');
             res.status(204)
         }
     }

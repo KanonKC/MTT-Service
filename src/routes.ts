@@ -8,7 +8,7 @@ import GoogleDrive from './externals/google-drive/google-drive';
 import GoogleDriveController from './controllers/google-drive/google-drive.controller';
 import LineController from './controllers/line/line.controller';
 import LINE from './externals/line/line';
-import ScheduleService from './services/schedule/schedule.service';
+import LessonService from './services/lesson/lesson.service';
 import Gemini from './externals/gemini/gemini';
 import AuthService from './services/auth/auth.service';
 import AuthController from './controllers/auth/auth.controller';
@@ -16,11 +16,14 @@ import GoogleAuth from './externals/google-auth/google-auth';
 import BookRepository from './repositories/book/book.repository';
 import { PrismaClient } from '@prisma/client';
 import BookService from './services/book/book.service';
+import Cron from './cron';
+import Cache from './cache';
 
 const server = fastify();
 
 const config = new Configuration();
 const prisma = new PrismaClient();
+const cache = new Cache();
 
 const oauth2Client = new OAuth2Client(config.googleCredentials);
 const token = JSON.parse(readFileSync('token.json', 'utf8'));
@@ -35,14 +38,17 @@ const googleAuth = new GoogleAuth(config, oauth2Client);
 
 const bookRepository = new BookRepository(prisma);
 
-const bookSvc = new BookService(googleDrive, bookRepository, gemini);
-const scheduleSvc = new ScheduleService(gemini, line, bookSvc, bookRepository);
+const bookSvc = new BookService(config, googleDrive, bookRepository, gemini);
+const lessonSvc = new LessonService(gemini, line, bookSvc, cache);
 const authSvc = new AuthService(googleAuth);
 
 const googleAuthCtrl = new GoogleAuthController(googleAuth);
 const googleDriveCtrl = new GoogleDriveController(googleDrive);
-const lineCtrl = new LineController(line, scheduleSvc);
+const lineCtrl = new LineController(line, lessonSvc);
 const authCtrl = new AuthController(authSvc);
+
+const cron = new Cron(bookSvc, cache);
+cron.start();
 
 server.get('/', async (req, res) => {
   res.send('Hello World');
@@ -54,4 +60,4 @@ server.get('/files', googleDriveCtrl.listFiles.bind(googleDriveCtrl));
 server.post('/files/pdf', googleDriveCtrl.uploadPDF.bind(googleDriveCtrl));
 server.post('/line/webhook', lineCtrl.handleWebhook.bind(lineCtrl));
 
-export default server;
+export { server, config };

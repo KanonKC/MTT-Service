@@ -17,6 +17,8 @@ interface GeminiConfig {
 }
 
 export default class Configuration {
+    public readonly port: number = 8000;
+    public readonly timeZone: string = 'Asia/Bangkok';
     public readonly googleCredentials: GoogleCredentials = {
         clientId: "",
         clientSecret: "",
@@ -39,7 +41,10 @@ export default class Configuration {
             redirectUri: credentials.web.redirect_uris[0],
             scopes: credentials.web.scopes
         }
+
         const config = JSON.parse(readFileSync('config.json', 'utf8'));
+        this.port = config.port;
+        this.timeZone = config.timeZone;
         this.line = {
             accessToken: config.line.access_token
         }

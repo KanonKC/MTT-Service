@@ -26,10 +26,10 @@ const gemini = new Gemini(config);
 const prisma = new PrismaClient();
 const bookRepository = new BookRepository(prisma);
 
-const bookService = new BookService(googleDrive, bookRepository, gemini);
+const bookService = new BookService(config, googleDrive, bookRepository, gemini);
 
 (async () => {
-    await bookService.bulkDownloadBookCover();
+    await bookService.importBookDataFromGoogleDrive();
     // await googleDrive.download('12Lizjn_uUmtqAk8mcxJpQ-cIeFgXiLEH', 'public/book-cover/12Lizjn_uUmtqAk8mcxJpQ-cIeFgXiLEH.jpeg')
     console.log("OK");
 })();

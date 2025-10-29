@@ -16,6 +16,18 @@ model Book {
     author          String?
     cover_image     String?
     google_drive_id String
-    createdAt       DateTime @default(now())
-    updatedAt       DateTime @updatedAt
+    created_at      DateTime @default(now())
+    updated_at      DateTime @updatedAt
+    lessons         Lesson[]
+}
+
+model Lesson {
+    id         Int      @id @default(autoincrement())
+    class      Int
+    subject    String
+    note       String?
+    book_id    Int?
+    book       Book?    @relation(fields: [book_id], references: [id])
+    created_at DateTime @default(now())
+    updated_at DateTime @updatedAt
 }

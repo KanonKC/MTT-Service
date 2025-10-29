@@ -18,6 +18,7 @@ import { PrismaClient } from '@prisma/client';
 import BookService from './services/book/book.service';
 import Cron from './cron';
 import Cache from './cache';
+import LessonRepository from './repositories/lesson/lesson.repository';
 
 const server = fastify();
 
@@ -37,14 +38,15 @@ const gemini = new Gemini(config);
 const googleAuth = new GoogleAuth(config, oauth2Client);
 
 const bookRepository = new BookRepository(prisma);
+const lessonRepository = new LessonRepository(prisma);
 
 const bookSvc = new BookService(config, googleDrive, bookRepository, gemini);
-const lessonSvc = new LessonService(gemini, line, bookSvc, cache);
+const lessonSvc = new LessonService(gemini, line, bookSvc, cache, lessonRepository);
 const authSvc = new AuthService(googleAuth);
 
 const googleAuthCtrl = new GoogleAuthController(googleAuth);
 const googleDriveCtrl = new GoogleDriveController(googleDrive);
-const lineCtrl = new LineController(line, lessonSvc);
+const lineCtrl = new LineController(config, line, lessonSvc, cache, gemini);
 const authCtrl = new AuthController(authSvc);
 
 const cron = new Cron(bookSvc, cache);

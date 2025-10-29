@@ -18,6 +18,14 @@ export default class BookRepository {
         });
     }
 
+    async get(id: number): Promise<Book | null> {
+        return this.prisma.book.findUnique({
+            where: {
+                id: id,
+            },
+        });
+    }
+
     async list(): Promise<Book[]> {
         return this.prisma.book.findMany();
     }

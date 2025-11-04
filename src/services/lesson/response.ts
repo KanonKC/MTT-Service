@@ -8,7 +8,7 @@ export interface ClassUpdateResponse {
 }
 
 export interface UpdateLessonResponse {
-    class: number;
+    classLevel: number;
     subject: string;
     book: ExtendedBook | null;
 }

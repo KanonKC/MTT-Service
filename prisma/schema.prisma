@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-    provider = "sqlite"
+    provider = "mysql"
     url      = env("DATABASE_URL")
 }
 
@@ -22,12 +22,13 @@ model Book {
 }
 
 model Lesson {
-    id         Int      @id @default(autoincrement())
-    class      Int
-    subject    String
-    note       String?
-    book_id    Int?
-    book       Book?    @relation(fields: [book_id], references: [id])
-    created_at DateTime @default(now())
-    updated_at DateTime @updatedAt
+    id          Int      @id @default(autoincrement())
+    key         String?  @unique @default(cuid())
+    class_level Int
+    subject     String
+    note        String?
+    book_id     Int?
+    book        Book?    @relation(fields: [book_id], references: [id])
+    created_at  DateTime @default(now())
+    updated_at  DateTime @updatedAt
 }

@@ -17,6 +17,7 @@ interface GeminiConfig {
 }
 
 export default class Configuration {
+    public readonly host: string = 'localhost';
     public readonly port: number = 8000;
     public readonly timeZone: string = 'Asia/Bangkok';
     public readonly googleCredentials: GoogleCredentials = {
@@ -43,6 +44,7 @@ export default class Configuration {
         }
 
         const config = JSON.parse(readFileSync('config.json', 'utf8'));
+        this.host = config.host;
         this.port = config.port;
         this.timeZone = config.timeZone;
         this.line = {

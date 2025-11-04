@@ -27,7 +27,7 @@ export default class BookService {
         this.gemini = gemini;
     }
 
-    async extendBook(book: Book): Promise<ExtendedBook> {
+    extendBook(book: Book): ExtendedBook {
         return {
             ...book,
             google_drive_url: `https://drive.google.com/drive/u/0/folders/${book.google_drive_id}`,

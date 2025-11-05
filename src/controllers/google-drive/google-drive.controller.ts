@@ -9,7 +9,6 @@ export default class GoogleDriveController {
     }
 
     async listFiles(req: FastifyRequest, res: FastifyReply) {
-        console.log('listFiles');
         const files = await this.googleDrive.listFiles();
         res.status(200).send({ files });
     }

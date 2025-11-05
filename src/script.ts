@@ -36,7 +36,7 @@ const lessonRepository = new LessonRepository(prisma);
 const bookService = new BookService(config, googleDrive, bookRepository, gemini);
 const lessonService = new LessonService(gemini, bookService, lessonRepository);
 
-const lineWebhookController = new LineWebhookController(config, line, lessonService, cache, gemini);
+const lineWebhookController = new LineWebhookController(config, line, lessonService, cache, gemini, lessonRepository);
 
 // (async () => {
 //     await bookService.importBookDataFromGoogleDrive();
@@ -76,7 +76,7 @@ const imageEvent: LineEvent = {
 };
 
 (async () => {
-    // await bookService.importBookDataFromGoogleDrive();
+    await bookService.importBookDataFromGoogleDrive();
     // await lessonService.create('สอนวิชาคณิตศาสตร์ ชั้น ม.1 เรื่อง สมการกำลังสอง', Buffer.from(''));
     // await lessonRepository.create({
     //     classLevel: 999,
@@ -96,9 +96,9 @@ const imageEvent: LineEvent = {
     //     },
     // });
     // await googleDrive.download('12Lizjn_uUmtqAk8mcxJpQ-cIeFgXiLEH', 'public/book-cover/12Lizjn_uUmtqAk8mcxJpQ-cIeFgXiLEH.jpeg')
-    const result1 = await lineWebhookController.updateLesson(imageEvent);
-    const result2 = await lineWebhookController.updateLesson(messageEvent);
-    console.log('result1', result1);
-    console.log('result2', result2);
+    // const result1 = await lineWebhookController.updateLesson(imageEvent);
+    // const result2 = await lineWebhookController.updateLesson(messageEvent);
+    // console.log('result1', result1);
+    // console.log('result2', result2);
     console.log('OK');
 })();

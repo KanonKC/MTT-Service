@@ -1,4 +1,5 @@
 export interface CreateLesson {
+    key: string;
     classLevel: number;
     subject: string;
     note: string | null;

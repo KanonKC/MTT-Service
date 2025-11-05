@@ -1,6 +1,6 @@
 import LINE from '@/externals/line/line';
 import { LineEvent, LineWebhookRequest } from '@/externals/line/request';
-import { ClassUpdateResponse, UpdateLessonResponse } from '@/services/lesson/response';
+import { ClassUpdateResponse, CreateLessonResponse, UpdateLessonResponse } from '@/services/lesson/response';
 import { FastifyReply, FastifyRequest } from 'fastify';
 import { writeFileSync } from 'fs';
 import LessonService from '@/services/lesson/lesson.service';
@@ -11,6 +11,7 @@ import Configuration from '@/configs';
 import { Lesson } from '@prisma/client';
 import { ExtendedLesson } from '@/repositories/lesson/response';
 import LessonRepository from '@/repositories/lesson/lesson.repository';
+import { CreateLesson } from '@/repositories/lesson/request';
 
 export default class LineWebhookController {
     private readonly config: Configuration;
@@ -34,7 +35,6 @@ export default class LineWebhookController {
             res.status(200).send(destination).type('text/plain');
         } else {
             const event = events[0];
-            // this.lessonService.create('ม.6 วิชาคณิตศาสตร์', Buffer.from('test'));
             if (event.message.type === 'text' && event.message.text?.startsWith('ดู')) {
                 this.getLatestLesson(event);
             } else {
@@ -45,19 +45,12 @@ export default class LineWebhookController {
         }
     }
 
-    async lineDelete(req: FastifyRequest<{ Params: { id: string }, Querystring: { key: string } }>, res: FastifyReply) {
-        const lesson = await this.lessonService.get(parseInt(req.params.id));
-        
-        if (!lesson) {
-            res.status(404).send({ error: 'Lesson not found' });
+    async lineDelete(req: FastifyRequest<{ Params: { key: string } }>, res: FastifyReply) {
+        if (req.headers['user-agent'] === 'facebookexternalhit/1.1;line-poker/1.0') {
+            res.status(204).send();
             return;
         }
-
-        if (lesson.key !== req.query.key) {
-            res.status(403).send({ error: 'Invalid key' });
-        }
-
-        await this.lessonService.delete(lesson.id);
+        await this.lessonService.deleteByKey(req.params.key);
         res.status(204).send();
     }
 
@@ -86,7 +79,10 @@ export default class LineWebhookController {
         const lesson = await this.lessonService.getLatest(structMessage.subject, structMessage.class);
         if (lesson) {
             const date = lesson.created_at.toLocaleString('en-US', { timeZone: this.config.timeZone })
-            const replyMessage = `${date}\n${lesson.note}\n${lesson.book?.title}\n${lesson.book?.google_drive_url}`;
+            let replyMessage = `${date}\n${lesson.note}`;
+            if (lesson.book) {
+                replyMessage += `\nBook: ${lesson.book.title}\n${lesson.book.google_drive_url}`;
+            }
             await this.line.replyMessage(e.replyToken, replyMessage);
         } else {
             await this.line.replyMessage(e.replyToken, 'ไม่พบบทเรียนนี้ในระบบ');
@@ -96,11 +92,11 @@ export default class LineWebhookController {
     async updateLesson(e: LineEvent) {
         const messageKey = `update-lesson_message_${e.source.userId}`;
         const imageKey = `update-lesson_image_${e.source.userId}`;
-        let res: ExtendedLesson | null = null;
+        let lesson: CreateLessonResponse | null = null;
         if (e.message.type === 'text') {
             const image = this.cache.get<Buffer>(imageKey);
             if (image) {
-                res = await this.lessonService.create(e.message.text ?? '', image);
+                lesson = await this.lessonService.create(e.message.text ?? '', image);
                 this.cache.delete(imageKey);
             } else {
                 this.cache.set(messageKey, e.message.text ?? '', TTL.ONE_HOUR);
@@ -109,25 +105,18 @@ export default class LineWebhookController {
             const image = await this.line.getContent(e.message.id);
             const message = this.cache.get<string>(messageKey);
             if (message) {
-                res = await this.lessonService.create(message, image);
+                lesson = await this.lessonService.create(message, image);
                 this.cache.delete(messageKey);
             } else {
                 this.cache.set(imageKey, image, TTL.ONE_HOUR);
             }
         }
-        if (res) {
-            console.log('res', res);
-            // await this.lessonRepository.create({
-            //     classLevel: res.class_level,
-            //     subject: res.subject,
-            //     note: res.note,
-            //     bookId: res.book?.id ?? null,
-            // });
-            let replyMessage = `Class: ${res?.class_level}\nSubject: ${res?.subject}`;
-            if (res.book) {
-                replyMessage += `\nBook: ${res.book.title}\n${res.book.google_drive_url}`;
+        if (lesson) {
+            let replyMessage = `Class: ${lesson?.class_level}\nSubject: ${lesson?.subject}`;
+            if (lesson.book) {
+                replyMessage += `\nBook: ${lesson.book.title}\n${lesson.book.google_drive_url}`;
             }
-            const deleteUrl = `${this.config.host}/line/delete/lessons/${res.id}?key=${res.key}`;
+            const deleteUrl = `${this.config.host}/line/delete/lessons/${lesson.key}`;
             replyMessage += `\n\nหากมีข้อผิดพลาดในการบันทึกการสอน สามารถกดที่ลิงก์นี้เพื่อลบและเขียนใหม่ได้: ${deleteUrl}`;
             await this.line.replyMessage(e.replyToken, replyMessage)
         }

@@ -10,6 +10,7 @@ export default class LessonRepository {
     async create(r: CreateLesson): Promise<Lesson> {
         return this.prisma.lesson.create({
             data: {
+                key: r.key,
                 class_level: r.classLevel,
                 subject: r.subject,
                 note: r.note,
@@ -37,6 +38,14 @@ export default class LessonRepository {
         await this.prisma.lesson.delete({
             where: {
                 id: id,
+            },
+        });
+    }
+
+    async deleteByKey(key: string): Promise<void> {
+        await this.prisma.lesson.delete({
+            where: {
+                key: key,
             },
         });
     }

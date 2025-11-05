@@ -16,3 +16,11 @@ export interface UpdateLessonResponse {
 export interface LatestLessonResponse extends Lesson {
     book: ExtendedBook | null;
 }
+
+export interface CreateLessonResponse {
+    key: string;
+    book: ExtendedBook | null;
+    class_level: number;
+    subject: string;
+    note: string | null;
+}

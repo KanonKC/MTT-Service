@@ -61,7 +61,7 @@ server.get('/oauth2callback', authCtrl.loginWithGoogle.bind(authCtrl));
 server.get('/files', googleDriveCtrl.listFiles.bind(googleDriveCtrl));
 server.post('/files/pdf', googleDriveCtrl.uploadPDF.bind(googleDriveCtrl));
 server.post('/line/webhook', lineWebhookCtrl.handleWebhook.bind(lineWebhookCtrl));
-server.get('/line/delete/lessons/:id', lineWebhookCtrl.lineDelete.bind(lineWebhookCtrl));
+server.get('/line/delete/lessons/:key', lineWebhookCtrl.lineDelete.bind(lineWebhookCtrl));
 
 export { config, server };
 

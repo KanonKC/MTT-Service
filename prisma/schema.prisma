@@ -23,7 +23,7 @@ model Book {
 
 model Lesson {
     id          Int      @id @default(autoincrement())
-    key         String?  @unique @default(cuid())
+    key         String   @unique
     class_level Int
     subject     String
     note        String?

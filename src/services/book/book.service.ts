@@ -132,7 +132,8 @@ export default class BookService {
     async importBookDataFromGoogleDrive() {
         const bookList = await this.bookRepository.list();
         // TODO: List by MimeType
-        const fileList = await this.googleDrive.list("mimeType = 'image/jpeg' or mimeType = 'image/png'", 30);
+        // const fileList = await this.googleDrive.list("mimeType = 'image/jpeg' or mimeType = 'image/png'", 30);
+        const fileList = await this.googleDrive.list("name contains 'bookcover'", 30);
         if (!fileList.files) {
             return;
         }

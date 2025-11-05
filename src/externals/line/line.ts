@@ -31,11 +31,6 @@ export default class LINE {
                     text: message,
                 },
             ],
-            config: {
-                thinkingConfig: {
-                    thinkingBudget: 0,
-                },
-            },
         });
     }
 

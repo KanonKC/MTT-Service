@@ -1,5 +1,6 @@
 import Configuration from '@/configs';
 import axios, { AxiosInstance } from 'axios';
+import { LineProfile } from './response';
 
 export default class LINE {
     private readonly config: Configuration;
@@ -21,7 +22,7 @@ export default class LINE {
         });
     }
 
-    async replyMessage(replyToken: string, message: string) {
+    async replyMessage(replyToken: string, message: string): Promise<void> {
         await this.lineAPI.post('/message/reply', {
             replyToken,
             messages: [
@@ -30,18 +31,18 @@ export default class LINE {
                     text: message,
                 },
             ],
-            config: {
-                thinkingConfig: {
-                    thinkingBudget: 0,
-                },
-            },
         });
     }
 
-    async getContent(messageId: string) {
+    async getContent(messageId: string): Promise<Buffer> {
         const response = await this.lineDataAPI.get(`/message/${messageId}/content`, {
             responseType: 'arraybuffer',
         });
         return Buffer.from(response.data);
+    }
+
+    async getProfile(userId: string): Promise<LineProfile> {
+        const response = await this.lineAPI.get<LineProfile>(`/profile/${userId}`);
+        return response.data;
     }
 }

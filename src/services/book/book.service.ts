@@ -27,7 +27,7 @@ export default class BookService {
         this.gemini = gemini;
     }
 
-    async extendBook(book: Book): Promise<ExtendedBook> {
+    extendBook(book: Book): ExtendedBook {
         return {
             ...book,
             google_drive_url: `https://drive.google.com/drive/u/0/folders/${book.google_drive_id}`,
@@ -132,7 +132,8 @@ export default class BookService {
     async importBookDataFromGoogleDrive() {
         const bookList = await this.bookRepository.list();
         // TODO: List by MimeType
-        const fileList = await this.googleDrive.list("mimeType = 'image/jpeg' or mimeType = 'image/png'", 30);
+        // const fileList = await this.googleDrive.list("mimeType = 'image/jpeg' or mimeType = 'image/png'", 30);
+        const fileList = await this.googleDrive.list("name contains 'bookcover'", 30);
         if (!fileList.files) {
             return;
         }

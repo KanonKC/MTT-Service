@@ -5,7 +5,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon --require tsconfig-paths/register src/index.ts",
-    "script": "ts-node --require tsconfig-paths/register src/script.ts"
+    "script": "ts-node --require tsconfig-paths/register src/script.ts",
+    "build": "tsc"
   },
   "author": "",
   "license": "ISC",

@@ -10,7 +10,8 @@ export default class LessonRepository {
     async create(r: CreateLesson): Promise<Lesson> {
         return this.prisma.lesson.create({
             data: {
-                class: r.class,
+                key: r.key,
+                class_level: r.classLevel,
                 subject: r.subject,
                 note: r.note,
                 book_id: r.bookId,
@@ -21,14 +22,38 @@ export default class LessonRepository {
     async list(f?: LessonFilterOptions): Promise<Lesson[]> {
         return this.prisma.lesson.findMany({
             where: {
-                ...(f?.class && { class: f.class }),
+                ...(f?.class_level && { class_level: f.class_level }),
                 ...(f?.subject && { subject: f.subject }),
                 ...(f?.bookId && { book_id: f.bookId }),
-                ...(f?.after && { createdAt: { gte: f.after } }),
-                ...(f?.before && { createdAt: { lte: f.before } }),
+                ...(f?.after && { created_at: { gte: f.after } }),
+                ...(f?.before && { created_at: { lte: f.before } }),
             },
             include: {
                 book: true,
+            },
+        });
+    }
+
+    async delete(id: number): Promise<void> {
+        await this.prisma.lesson.delete({
+            where: {
+                id: id,
+            },
+        });
+    }
+
+    async deleteByKey(key: string): Promise<void> {
+        await this.prisma.lesson.delete({
+            where: {
+                key: key,
+            },
+        });
+    }
+
+    async get(id: number): Promise<Lesson | null> {
+        return this.prisma.lesson.findUnique({
+            where: {
+                id: id,
             },
         });
     }
@@ -37,8 +62,9 @@ export default class LessonRepository {
         return this.prisma.lesson.findFirst({
             where: {
                 subject: subject,
-                class: studentClass,
+                class_level: studentClass,
             },
         });
     }
+
 }

@@ -1,12 +1,13 @@
 export interface CreateLesson {
-    class: number;
+    key: string;
+    classLevel: number;
     subject: string;
     note: string | null;
     bookId: number | null;
 }
 
 export interface LessonFilterOptions {
-    class?: number;
+    class_level?: number;
     subject?: string;
     bookId?: number;
     after?: Date;

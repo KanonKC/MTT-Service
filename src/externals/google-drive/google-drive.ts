@@ -90,10 +90,14 @@ export default class GoogleDrive {
         })
     }
 
-    async download(fileId: string, filename: string) {
+    async download(fileId: string, filename: string, onFinish?: () => void) {
         const { data } = await this.downloadFile(fileId);
         const dest = createWriteStream(filename);
-        data.pipe(dest);
+        data.pipe(dest).on('finish', () => {
+            if (onFinish) {
+                onFinish();
+            }
+        });
     }
 
     async uploadPDF(filename: string, base64: string) {

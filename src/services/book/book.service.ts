@@ -34,6 +34,14 @@ export default class BookService {
         };
     }
 
+    async get(id: number): Promise<ExtendedBook | null> {
+        const book = await this.bookRepository.get(id);
+        if (!book) {
+            return null;
+        }
+        return this.extendBook(book);
+    }
+
     async getByTitle(title: string): Promise<ExtendedBook | null> {
         const book = await this.bookRepository.getByTitle(title);
         if (!book) {
@@ -82,9 +90,12 @@ export default class BookService {
                     answer: {
                         type: Type.STRING,
                     },
+                    confidence: {
+                        type: Type.NUMBER,
+                    },
                 },
             };
-            const res = await this.gemini.generateStructuredOutput<{ answer: string }>(
+            const res = await this.gemini.generateStructuredOutput<{ answer: string, confidence: number }>(
                 [
                     {
                         text: `
@@ -92,6 +103,7 @@ export default class BookService {
                 ${bookTitles.join('\n')}
                 Find the book title that matches the image.
                 Return only the book title from the given list, no other text.
+                Also return the confidence of the answer between 0 and 1.
                 `,
                     },
                     {
@@ -103,7 +115,9 @@ export default class BookService {
                 ],
                 struct
             );
-
+            if (res.confidence < 0.7) {
+                return null;
+            }
             const book = bookList.find((book) => book.title === res.answer);
             if (!book) {
                 return null;

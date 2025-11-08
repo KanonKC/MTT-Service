@@ -1,3 +1,4 @@
+import { configDotenv } from "dotenv";
 import { readFileSync } from "fs";
 
 interface GoogleCredentials {
@@ -35,24 +36,26 @@ export default class Configuration {
     }
 
     constructor() {
+        // Read config file
+        configDotenv();
+        this.host = process.env.HOST || 'localhost';
+        this.port = parseInt(process.env.PORT || '8000');
+        this.timeZone = process.env.TIME_ZONE || 'Asia/Bangkok';
+        this.line = {
+            accessToken: process.env.LINE_ACCESS_TOKEN || ''
+        }
+        this.gemini = {
+            apiKey: process.env.GEMINI_API_KEY || '',
+            model: process.env.GEMINI_MODEL || ''
+        }
+
+        // Read Google OAuth credentials file
         const credentials = JSON.parse(readFileSync('credentials.json', 'utf8'));
         this.googleCredentials = {
             clientId: credentials.web.client_id,
             clientSecret: credentials.web.client_secret,
             redirectUri: credentials.web.redirect_uris[0],
             scopes: credentials.web.scopes
-        }
-
-        const config = JSON.parse(readFileSync('config.json', 'utf8'));
-        this.host = config.host;
-        this.port = config.port;
-        this.timeZone = config.timeZone;
-        this.line = {
-            accessToken: config.line.access_token
-        }
-        this.gemini = {
-            apiKey: config.gemini.api_key,
-            model: config.gemini.model
         }
     }
 }

@@ -19,6 +19,7 @@ import LessonRepository from './repositories/lesson/lesson.repository';
 import AuthService from './services/auth/auth.service';
 import BookService from './services/book/book.service';
 import LessonService from './services/lesson/lesson.service';
+import AdminService from './services/admin/admin.service';
 
 const server = fastify();
 
@@ -26,27 +27,22 @@ const config = new Configuration();
 const prisma = new PrismaClient();
 const cache = new Cache();
 
-const oauth2Client = new OAuth2Client(config.googleCredentials);
-const token = JSON.parse(readFileSync('token.json', 'utf8'));
-oauth2Client.setCredentials(token);
-
-const drive = google.drive({version: 'v3', auth: oauth2Client});
-
-const googleDrive = new GoogleDrive(oauth2Client, drive);
+const googleAuth = new GoogleAuth(config);
+const googleDrive = new GoogleDrive(googleAuth);
 const line = new LINE(config);
 const gemini = new Gemini(config);
-const googleAuth = new GoogleAuth(config, oauth2Client);
 
 const bookRepository = new BookRepository(prisma);
 const lessonRepository = new LessonRepository(prisma);
 
+const adminSvc = new AdminService(prisma, line, googleDrive, gemini);
 const bookSvc = new BookService(config, googleDrive, bookRepository, gemini);
 const lessonSvc = new LessonService(gemini, bookSvc, lessonRepository);
 const authSvc = new AuthService(googleAuth);
 
 const googleAuthCtrl = new GoogleAuthController(googleAuth);
 const googleDriveCtrl = new GoogleDriveController(googleDrive);
-const lineWebhookCtrl = new LineWebhookController(config, line, lessonSvc, cache, gemini, lessonRepository);
+const lineWebhookCtrl = new LineWebhookController(config, line, lessonSvc, cache, adminSvc);
 const authCtrl = new AuthController(authSvc);
 
 const cron = new Cron(bookSvc, cache);
@@ -64,4 +60,3 @@ server.post('/line/webhook', lineWebhookCtrl.handleWebhook.bind(lineWebhookCtrl)
 server.get('/line/delete/lessons/:key', lineWebhookCtrl.deleteLesson.bind(lineWebhookCtrl));
 
 export { config, server };
-

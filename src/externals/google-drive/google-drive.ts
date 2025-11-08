@@ -4,14 +4,13 @@ import { drive_v3, google } from "googleapis";
 import { Readable } from "stream";
 import { MimeType } from "./request";
 import { GoogleDriveFileList } from "./response";
+import GoogleAuth from "../google-auth/google-auth";
 
 export default class GoogleDrive {
-    private readonly auth: OAuth2Client;
     private readonly drive: drive_v3.Drive;
 
-    constructor(auth: OAuth2Client, drive: drive_v3.Drive) {
-        this.auth = auth;
-        this.drive = drive;
+    constructor(googleAuth: GoogleAuth) {
+        this.drive = google.drive({version: 'v3', auth: googleAuth.getOAuth2Client()});
     }
 
     async list(q?: string, pageSize?: number) {

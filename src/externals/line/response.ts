@@ -5,3 +5,11 @@ export interface LineProfile {
     pictureUrl?: string;
     statusMessage?: string;
 }
+
+export interface LineTestWebhookResponse {
+    success: boolean;
+    timestamp: string;
+    statusCode: number;
+    reason: string;
+    detail: string;
+}

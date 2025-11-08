@@ -1,10 +1,9 @@
 import Cache, { TTL } from '@/cache';
 import Configuration from '@/configs';
-import Gemini from '@/externals/gemini/gemini';
 import LINE from '@/externals/line/line';
 import { LineEvent, LineWebhookRequest } from '@/externals/line/request';
-import LessonRepository from '@/repositories/lesson/lesson.repository';
 import { ExtendedLesson } from '@/repositories/lesson/response';
+import AdminService from '@/services/admin/admin.service';
 import LessonService from '@/services/lesson/lesson.service';
 import { FastifyReply, FastifyRequest } from 'fastify';
 
@@ -13,15 +12,13 @@ export default class LineWebhookController {
     private readonly line: LINE;
     private readonly lessonService: LessonService;
     private readonly cache: Cache
-    private readonly gemini: Gemini;
-    private readonly lessonRepository: LessonRepository;
-    constructor(config: Configuration, line: LINE, lessonService: LessonService, cache: Cache, gemini: Gemini, lessonRepository: LessonRepository) {
+    private readonly adminService: AdminService;
+    constructor(config: Configuration, line: LINE, lessonService: LessonService, cache: Cache, adminService: AdminService) {
         this.config = config;
         this.line = line;
         this.lessonService = lessonService;
         this.cache = cache
-        this.gemini = gemini;
-        this.lessonRepository = lessonRepository;
+        this.adminService = adminService;
     }
 
     async handleWebhook(req: FastifyRequest<{ Body: LineWebhookRequest }>, res: FastifyReply) {
@@ -29,11 +26,19 @@ export default class LineWebhookController {
         if (events.length === 0) {
             res.status(200).send(destination).type('text/plain');
         } else {
-            const event = events[0];
-            if (event.message.type === 'text' && event.message.text?.startsWith('ดู')) {
-                this.getLatestLesson(event);
+            const e = events[0];
+            if (e.message.type === 'text' && e.message.text?.startsWith('!')) {
+                const command = e.message.text?.split(' ')[0].substring(1);
+                switch (command) {
+                    case 'hc':
+                        this.getHealthCheck(e);
+                        break;
+                }
+
+            } else if (e.message.type === 'text' && e.message.text?.startsWith('ดู')) {
+                this.getLatestLesson(e);
             } else {
-                this.updateLesson(event);
+                this.updateLesson(e);
             }
 
             res.status(204);
@@ -97,5 +102,17 @@ export default class LineWebhookController {
             replyMessage += `\n\n⚠️ หากมีข้อผิดพลาดในการบันทึกการสอน สามารถกดที่ลิงก์นี้เพื่อลบและเขียนใหม่ได้: ${deleteUrl}`;
             await this.line.replyMessage(e.replyToken, replyMessage)
         }
+    }
+
+    async getHealthCheck(e: LineEvent) {
+        const healthCheck = await this.adminService.healthCheck();
+        let replyMessage = 'Health Check\n\n';
+        for (const service of healthCheck.services) {
+            replyMessage += `${service.ready ? '✅' : '❌'} ${service.name}\n`;
+            if (!service.ready) {
+                replyMessage += `${service.message}\n`;
+            }
+        }
+        await this.line.replyMessage(e.replyToken, replyMessage);
     }
 }

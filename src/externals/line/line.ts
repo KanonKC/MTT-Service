@@ -1,6 +1,6 @@
 import Configuration from '@/configs';
 import axios, { AxiosInstance } from 'axios';
-import { LineProfile } from './response';
+import { LineProfile, LineTestWebhookResponse } from './response';
 
 export default class LINE {
     private readonly config: Configuration;
@@ -20,6 +20,11 @@ export default class LINE {
                 Authorization: `Bearer ${this.config.line.accessToken}`,
             },
         });
+    }
+
+    async testWebhookEndpoint(): Promise<LineTestWebhookResponse> {
+        const response = await this.lineAPI.post<LineTestWebhookResponse>('/channel/webhook/test', {});
+        return response.data;
     }
 
     async replyMessage(replyToken: string, message: string): Promise<void> {

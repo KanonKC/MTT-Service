@@ -1,26 +1,23 @@
 import { PrismaClient } from '@prisma/client';
 import fastify from 'fastify';
-import { readFileSync } from 'fs';
-import { OAuth2Client } from 'google-auth-library';
-import { google } from 'googleapis';
 import Cache from './cache';
 import Configuration from './configs';
+import AdminController from './controllers/admin/admin.controller';
 import AuthController from './controllers/auth/auth.controller';
 import GoogleAuthController from './controllers/google-auth/google-auth.controller';
 import GoogleDriveController from './controllers/google-drive/google-drive.controller';
 import LineWebhookController from './controllers/line-webhook/line-webhook.controller';
-import Cron from './cron';
+import Cron from './cron-job';
 import Gemini from './externals/gemini/gemini';
 import GoogleAuth from './externals/google-auth/google-auth';
 import GoogleDrive from './externals/google-drive/google-drive';
 import LINE from './externals/line/line';
 import BookRepository from './repositories/book/book.repository';
 import LessonRepository from './repositories/lesson/lesson.repository';
+import AdminService from './services/admin/admin.service';
 import AuthService from './services/auth/auth.service';
 import BookService from './services/book/book.service';
 import LessonService from './services/lesson/lesson.service';
-import AdminService from './services/admin/admin.service';
-import AdminController from './controllers/admin/admin.controller';
 
 const server = fastify();
 
@@ -63,3 +60,4 @@ server.post('/line/webhook', lineWebhookCtrl.handleWebhook.bind(lineWebhookCtrl)
 server.get('/line/delete/lessons/:key', lineWebhookCtrl.deleteLesson.bind(lineWebhookCtrl));
 
 export { config, server };
+

@@ -1,7 +1,7 @@
 import { CronJob } from "cron";
-import BookService from "./services/book/book.service";
+import BookService from "../services/book/book.service";
 import { readdirSync, unlinkSync } from "fs";
-import Cache from "./cache";
+import Cache from "../cache";
 
 export default class Cron {
     private readonly cache: Cache;

@@ -1,32 +1,23 @@
-import { readFileSync } from 'fs';
-import { OAuth2Client } from 'google-auth-library';
-import { google } from 'googleapis';
+import { PrismaClient } from '@prisma/client';
+import Cache from './cache';
 import Configuration from './configs';
+import LineWebhookController from './controllers/line-webhook/line-webhook.controller';
 import Gemini from './externals/gemini/gemini';
+import GoogleAuth from './externals/google-auth/google-auth';
 import GoogleDrive from './externals/google-drive/google-drive';
 import LINE from './externals/line/line';
-import BookService from './services/book/book.service';
-import GoogleAuth from './externals/google-auth/google-auth';
 import BookRepository from './repositories/book/book.repository';
-import { PrismaClient } from '@prisma/client';
 import LessonRepository from './repositories/lesson/lesson.repository';
-import LessonService from './services/lesson/lesson.service';
-import Cache from './cache';
-import LineWebhookController from './controllers/line-webhook/line-webhook.controller';
-import { LineEvent } from './externals/line/request';
 import AdminService from './services/admin/admin.service';
+import BookService from './services/book/book.service';
+import LessonService from './services/lesson/lesson.service';
 
 const config = new Configuration();
 
-const oauth2Client = new OAuth2Client(config.googleCredentials);
-const token = JSON.parse(readFileSync('token.json', 'utf8'));
-oauth2Client.setCredentials(token);
 const cache = new Cache();
 
-const drive = google.drive({ version: 'v3', auth: oauth2Client });
-
-const googleAuth = new GoogleAuth(config, oauth2Client);
-const googleDrive = new GoogleDrive(oauth2Client, drive);
+const googleAuth = new GoogleAuth(config);
+const googleDrive = new GoogleDrive(googleAuth);
 const line = new LINE(config);
 const gemini = new Gemini(config);
 

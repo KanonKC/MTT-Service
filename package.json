@@ -1,13 +1,14 @@
 {
-  "name": "ts-backend-service-template",
+  "name": "mtt-backend",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon --require tsconfig-paths/register src/index.ts",
     "script": "ts-node --require tsconfig-paths/register src/script.ts",
-    "build": "tsc",
-    "login": "ts-node --require tsconfig-paths/register src/scripts/generate-google-login-url.ts"
+    "build": "tsc && tsc-alias",
+    "login": "ts-node --require tsconfig-paths/register src/scripts/generate-google-login-url.ts",
+    "start": "node build/index.js"
   },
   "author": "",
   "license": "ISC",
@@ -31,6 +32,7 @@
     "@types/node": "^24.8.1",
     "nodemon": "^3.1.10",
     "prisma": "^6.17.1",
+    "tsc-alias": "^1.8.16",
     "typescript": "^5.9.3"
   }
 }

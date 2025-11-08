@@ -14,6 +14,7 @@ import LessonService from './services/lesson/lesson.service';
 import Cache from './cache';
 import LineWebhookController from './controllers/line-webhook/line-webhook.controller';
 import { LineEvent } from './externals/line/request';
+import AdminService from './services/admin/admin.service';
 
 const config = new Configuration();
 
@@ -33,10 +34,11 @@ const prisma = new PrismaClient();
 const bookRepository = new BookRepository(prisma);
 const lessonRepository = new LessonRepository(prisma);
 
+const adminService = new AdminService(prisma, line, googleDrive, gemini);
 const bookService = new BookService(config, googleDrive, bookRepository, gemini);
 const lessonService = new LessonService(gemini, bookService, lessonRepository);
 
-const lineWebhookController = new LineWebhookController(config, line, lessonService, cache, gemini, lessonRepository);
+const lineWebhookController = new LineWebhookController(config, line, lessonService, cache, adminService);
 
 // (async () => {
 //     await bookService.importBookDataFromGoogleDrive();
@@ -46,7 +48,7 @@ const lineWebhookController = new LineWebhookController(config, line, lessonServ
 
 
 (async () => {
-    const lesson = await lessonService.getLatest('Chemistry', 5);
-    console.log(lesson);
+    const healthCheck = await adminService.healthCheck();
+    console.log(healthCheck);
     console.log('OK');
 })();

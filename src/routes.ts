@@ -20,6 +20,7 @@ import AuthService from './services/auth/auth.service';
 import BookService from './services/book/book.service';
 import LessonService from './services/lesson/lesson.service';
 import AdminService from './services/admin/admin.service';
+import AdminController from './controllers/admin/admin.controller';
 
 const server = fastify();
 
@@ -44,6 +45,7 @@ const googleAuthCtrl = new GoogleAuthController(googleAuth);
 const googleDriveCtrl = new GoogleDriveController(googleDrive);
 const lineWebhookCtrl = new LineWebhookController(config, line, lessonSvc, cache, adminSvc);
 const authCtrl = new AuthController(authSvc);
+const adminCtrl = new AdminController(adminSvc);
 
 const cron = new Cron(bookSvc, cache);
 cron.start();
@@ -52,6 +54,7 @@ server.get('/', async (req, res) => {
   res.send('Hello World');
 });
 
+server.get('/admin/health-check', adminCtrl.healthCheck.bind(adminCtrl));
 server.get('/google/login', authCtrl.getGoogleOAuthUrl.bind(authCtrl));
 server.get('/oauth2callback', authCtrl.loginWithGoogle.bind(authCtrl));
 server.get('/files', googleDriveCtrl.listFiles.bind(googleDriveCtrl));

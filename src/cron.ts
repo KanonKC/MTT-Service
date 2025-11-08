@@ -10,17 +10,12 @@ export default class Cron {
     constructor(bookService: BookService, cache: Cache) {
         this.cache = cache;
         this.bookService = bookService;
-        console.log('Cron initialized');
-        console.log('Cache initialized', this.cache);
     }
 
     async start(): Promise<void> {
-        const c1 = this.importBookDataFromGoogleDriveCron();
-        const c2 = this.clearCacheCron();
-
+        this.importBookDataFromGoogleDriveCron();
+        this.clearCacheCron();
         console.log('Cron started');
-        console.log(`Import book data from Google Drive cron: ${c1.nextDates()}`);
-        console.log(`Clear cache cron: ${c2.nextDates()}`);
     }
 
     importBookDataFromGoogleDriveCron(): CronJob {

@@ -64,6 +64,9 @@ export default class LessonRepository {
                 subject: subject,
                 class_level: studentClass,
             },
+            orderBy: {
+                created_at: 'desc',
+            }
         });
     }
 

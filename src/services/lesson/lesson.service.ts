@@ -1,17 +1,12 @@
-import Cache, { TTL } from '@/cache';
 import Gemini from '@/externals/gemini/gemini';
-import LINE from '@/externals/line/line';
-import { LineEvent } from '@/externals/line/request';
-import { Type } from '@google/genai';
-import BookService from '../book/book.service';
-import { ClassUpdateResponse, CreateLessonResponse, LatestLessonResponse, UpdateLessonResponse } from './response';
 import LessonRepository from '@/repositories/lesson/lesson.repository';
-import { ExtendedBook } from '../book/response';
-import { Lesson, PrismaClient } from '@prisma/client';
 import { ExtendedLesson } from '@/repositories/lesson/response';
-import { CreateLesson } from '@/repositories/lesson/request';
+import { Type } from '@google/genai';
+import { Lesson } from '@prisma/client';
 import { randomBytes } from 'crypto';
-
+import BookService from '../book/book.service';
+import { ExtendedBook } from '../book/response';
+import { LatestLessonResponse, LessonDetailResponse } from './response';
 
 export default class LessonService {
     private readonly gemini: Gemini;
@@ -26,10 +21,10 @@ export default class LessonService {
     generateKey(): string {
         const timestamp = Date.now().toString();
         const salt = randomBytes(timestamp.length).toString('hex');
-        let key = ""
+        let key = '';
         for (let i = 0; i < timestamp.length; i++) {
-            key += salt[i]
-            key += timestamp[i]
+            key += salt[i];
+            key += timestamp[i];
         }
         return key;
     }
@@ -45,9 +40,7 @@ export default class LessonService {
         };
     }
 
-    async create(message: string, image: Buffer): Promise<CreateLessonResponse> {
-
-        // Summarize the message to get the class and subject
+    async getLessonDetailFromMessage(message: string): Promise<LessonDetailResponse> {
         const struct = {
             type: Type.OBJECT,
             properties: {
@@ -68,7 +61,12 @@ export default class LessonService {
         - Class must be number between 0 to 6, 0 for elementary level and 1-6 for middle and high school level based on Thai education system
         - Subject must be one of the following: Math, Chemistry, Physics, Biology, English, Other
         `;
-        const lessonRes = await this.gemini.generateStructuredOutput<ClassUpdateResponse>(prompt, struct);
+        return this.gemini.generateStructuredOutput<LessonDetailResponse>(prompt, struct);
+    }
+
+    async create(message: string, image: Buffer): Promise<ExtendedLesson> {
+        // Summarize the message to get the class and subject
+        const lessonRes = await this.getLessonDetailFromMessage(message);
 
         // Get the book detail from the image
         // const bookDetail = await this.bookService.getDetailByCoverImage(image.toString('base64'), 'image/jpeg');
@@ -77,30 +75,15 @@ export default class LessonService {
         // const book = await this.bookService.getByTitle(bookDetail.title);
         const book = await this.bookService.getByMatchingImage(image.toString('base64'), 'image/jpeg');
 
-        const req: CreateLesson = {
+        const lesson = await this.lessonRepository.create({
             key: this.generateKey(),
             classLevel: lessonRes.class,
             subject: lessonRes.subject,
             note: message,
             bookId: book?.id ?? null,
-        };
-
-        // TODO: Should save to database here
-        await this.lessonRepository.create({
-            key: req.key,
-            classLevel: req.classLevel,
-            subject: req.subject,
-            note: req.note,
-            bookId: req.bookId,
         });
-        
-        return {
-            key: req.key,
-            class_level: req.classLevel,
-            subject: req.subject,
-            note: req.note,
-            book: book ? this.bookService.extendBook(book) : null,
-        };
+
+        return this.extendLesson(lesson);
     }
 
     async delete(id: number): Promise<void> {
@@ -115,18 +98,11 @@ export default class LessonService {
         return this.lessonRepository.get(id);
     }
 
-    async getLatest(subject: string, studentClass: number): Promise<LatestLessonResponse | null> {
+    async getLatest(subject: string, studentClass: number): Promise<ExtendedLesson | null> {
         const lesson = await this.lessonRepository.getBySubjectClass(subject, studentClass);
         if (!lesson) {
             return null;
         }
-        let book: ExtendedBook | null = null;
-        if (lesson?.book_id) {
-            book = await this.bookService.get(lesson.book_id);
-        }
-        return {
-            ...lesson,
-            book: book,
-        };
+        return this.extendLesson(lesson);
     }
 }

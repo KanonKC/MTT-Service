@@ -1,17 +1,12 @@
+import Cache, { TTL } from '@/cache';
+import Configuration from '@/configs';
+import Gemini from '@/externals/gemini/gemini';
 import LINE from '@/externals/line/line';
 import { LineEvent, LineWebhookRequest } from '@/externals/line/request';
-import { ClassUpdateResponse, CreateLessonResponse, UpdateLessonResponse } from '@/services/lesson/response';
-import { FastifyReply, FastifyRequest } from 'fastify';
-import { writeFileSync } from 'fs';
-import LessonService from '@/services/lesson/lesson.service';
-import Cache, { TTL } from '@/cache';
-import Gemini from '@/externals/gemini/gemini';
-import { Type } from '@google/genai';
-import Configuration from '@/configs';
-import { Lesson } from '@prisma/client';
-import { ExtendedLesson } from '@/repositories/lesson/response';
 import LessonRepository from '@/repositories/lesson/lesson.repository';
-import { CreateLesson } from '@/repositories/lesson/request';
+import { ExtendedLesson } from '@/repositories/lesson/response';
+import LessonService from '@/services/lesson/lesson.service';
+import { FastifyReply, FastifyRequest } from 'fastify';
 
 export default class LineWebhookController {
     private readonly config: Configuration;
@@ -45,8 +40,9 @@ export default class LineWebhookController {
         }
     }
 
-    async lineDelete(req: FastifyRequest<{ Params: { key: string } }>, res: FastifyReply) {
+    async deleteLesson(req: FastifyRequest<{ Params: { key: string } }>, res: FastifyReply) {
         if (req.headers['user-agent'] === 'facebookexternalhit/1.1;line-poker/1.0') {
+            // Do nothing, if the request is opened by LINE itself
             res.status(204).send();
             return;
         }
@@ -55,33 +51,14 @@ export default class LineWebhookController {
     }
 
     async getLatestLesson(e: LineEvent) {
-        const struct = {
-            type: Type.OBJECT,
-            properties: {
-                subject: {
-                    type: Type.STRING,
-                },
-                class: {
-                    type: Type.NUMBER,
-                },
-            },
-            required: ['subject', 'class'],
-        }
-
-        const prompt = `
-        Report the subject and class of the following message:
-        "${e.message.text}"
-        Here is the following rules for the subject and class:
-        - Subject must be one of the following: Math, Chemistry, Physics, Biology, English, Other
-        - Class must be number between 0 to 6, 0 for elementary level and 1-6 for middle and high school level based on Thai education system
-        `;
-        const structMessage = await this.gemini.generateStructuredOutput<ClassUpdateResponse>(prompt, struct);
-        const lesson = await this.lessonService.getLatest(structMessage.subject, structMessage.class);
+        if (!e.message.text) return;
+        const detail = await this.lessonService.getLessonDetailFromMessage(e.message.text);
+        const lesson = await this.lessonService.getLatest(detail.subject, detail.class);
         if (lesson) {
             const date = lesson.created_at.toLocaleString('en-US', { timeZone: this.config.timeZone })
-            let replyMessage = `${date}\n${lesson.note}`;
+            let replyMessage = `[${date}]\n🏫 Class: ${lesson.class_level}\n✏️ Subject: ${lesson.subject}\n\n📃 เนื้อหา:\n${lesson.note}`;
             if (lesson.book) {
-                replyMessage += `\nBook: ${lesson.book.title}\n${lesson.book.google_drive_url}`;
+                replyMessage += `\n\n📗 Book: ${lesson.book.title}\n${lesson.book.google_drive_url}`;
             }
             await this.line.replyMessage(e.replyToken, replyMessage);
         } else {
@@ -92,7 +69,7 @@ export default class LineWebhookController {
     async updateLesson(e: LineEvent) {
         const messageKey = `update-lesson_message_${e.source.userId}`;
         const imageKey = `update-lesson_image_${e.source.userId}`;
-        let lesson: CreateLessonResponse | null = null;
+        let lesson: ExtendedLesson | null = null;
         if (e.message.type === 'text') {
             const image = this.cache.get<Buffer>(imageKey);
             if (image) {
@@ -112,12 +89,12 @@ export default class LineWebhookController {
             }
         }
         if (lesson) {
-            let replyMessage = `Class: ${lesson?.class_level}\nSubject: ${lesson?.subject}`;
+            let replyMessage = `🏫 Class: ${lesson?.class_level}\n✏️ Subject: ${lesson?.subject}`;
             if (lesson.book) {
-                replyMessage += `\nBook: ${lesson.book.title}\n${lesson.book.google_drive_url}`;
+                replyMessage += `\n📗 Book: ${lesson.book.title}\n${lesson.book.google_drive_url}`;
             }
             const deleteUrl = `${this.config.host}/line/delete/lessons/${lesson.key}`;
-            replyMessage += `\n\nหากมีข้อผิดพลาดในการบันทึกการสอน สามารถกดที่ลิงก์นี้เพื่อลบและเขียนใหม่ได้: ${deleteUrl}`;
+            replyMessage += `\n\n⚠️ หากมีข้อผิดพลาดในการบันทึกการสอน สามารถกดที่ลิงก์นี้เพื่อลบและเขียนใหม่ได้: ${deleteUrl}`;
             await this.line.replyMessage(e.replyToken, replyMessage)
         }
     }

@@ -1,16 +1,14 @@
-import { createReadStream, createWriteStream, readFileSync } from "fs";
-import { OAuth2Client } from "google-auth-library";
-import { drive_v3, google } from "googleapis";
-import { Readable } from "stream";
-import { MimeType } from "./request";
-import { GoogleDriveFileList } from "./response";
-import GoogleAuth from "../google-auth/google-auth";
+import { createWriteStream } from 'fs';
+import { drive_v3, google } from 'googleapis';
+import { Readable } from 'stream';
+import GoogleAuth from '../google-auth/google-auth';
+import { MimeType } from './request';
 
 export default class GoogleDrive {
     private readonly drive: drive_v3.Drive;
 
     constructor(googleAuth: GoogleAuth) {
-        this.drive = google.drive({version: 'v3', auth: googleAuth.getOAuth2Client()});
+        this.drive = google.drive({ version: 'v3', auth: googleAuth.getOAuth2Client() });
     }
 
     async list(q?: string, pageSize?: number) {
@@ -18,9 +16,9 @@ export default class GoogleDrive {
             pageSize: pageSize ?? 5,
             q: q ?? undefined,
             fields: 'nextPageToken, files(id, name, parents, mimeType)',
-            orderBy: 'createdTime desc'
+            orderBy: 'createdTime desc',
         });
-        return result.data
+        return result.data;
     }
 
     async listFiles(): Promise<drive_v3.Schema$File[]> {
@@ -39,29 +37,32 @@ export default class GoogleDrive {
             media: {
                 mimeType,
                 body: stream,
-            }
-        })
+            },
+        });
     }
 
     async getFile(fileId: string) {
         return this.drive.files.get({
-            fileId
-        })
+            fileId,
+        });
     }
 
     async downloadFile(fileId: string) {
-        return this.drive.files.get({
-            fileId,
-            alt: 'media',
-        }, {
-            responseType: 'stream'
-        })
+        return this.drive.files.get(
+            {
+                fileId,
+                alt: 'media',
+            },
+            {
+                responseType: 'stream',
+            }
+        );
     }
 
     async listFileByFolderId(folderId: string) {
         const response = await this.drive.files.list({
             pageSize: 100,
-            q: `'${folderId}' in parents`
+            q: `'${folderId}' in parents`,
         });
         return response.data ?? [];
     }
@@ -86,17 +87,25 @@ export default class GoogleDrive {
         return this.drive.files.export({
             fileId,
             mimeType,
-        })
+        });
     }
 
-    async download(fileId: string, filename: string, onFinish?: () => void) {
+    async download(fileId: string, filename: string, onFinish?: () => void, onError?: (error: Error) => void) {
         const { data } = await this.downloadFile(fileId);
         const dest = createWriteStream(filename);
-        data.pipe(dest).on('finish', () => {
-            if (onFinish) {
-                onFinish();
-            }
-        });
+        data.pipe(dest)
+            .on('finish', () => {
+                if (onFinish) {
+                    onFinish();
+                }
+            })
+            .on('error', (error) => {
+                if (onError) {
+                    onError(error);
+                } else {
+                    throw error;
+                }
+            });
     }
 
     async uploadPDF(filename: string, base64: string) {
@@ -104,5 +113,4 @@ export default class GoogleDrive {
         const stream = Readable.from(buffer);
         return this.createFile(stream, MimeType.PDF, filename);
     }
-
 }

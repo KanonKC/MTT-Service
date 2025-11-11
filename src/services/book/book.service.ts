@@ -5,7 +5,6 @@ import BookRepository from '@/repositories/book/book.repository';
 import { CreateBook } from '@/repositories/book/request';
 import { Type } from '@google/genai';
 import { createWriteStream, readFileSync } from 'fs';
-import looksSame from 'looks-same';
 import path from 'path';
 import { BookDetail, ExtendedBook } from './response';
 import { Book } from '@prisma/client';
@@ -95,7 +94,7 @@ export default class BookService {
                     },
                 },
             };
-            const res = await this.gemini.generateStructuredOutput<{ answer: string, confidence: number }>(
+            const res = await this.gemini.generateStructuredOutput<{ answer: string; confidence: number }>(
                 [
                     {
                         text: `
@@ -165,24 +164,22 @@ export default class BookService {
                 const imageType = file.mimeType.split('/')[1];
                 const imageFilename = `${file.id}.${imageType}`;
                 const imagePath = path.join(process.cwd(), 'public', 'book-cover', imageFilename);
-                await this.googleDrive.download(String(file.id), imagePath);
-                // TODO: Handle on download success instead of static waiting
-                await new Promise((resolve) => setTimeout(resolve, 5000));
+                await this.googleDrive.download(String(file.id), imagePath, async () => {
+                    // Get title and author from image
+                    const base64 = readFileSync(imagePath, 'base64');
+                    const geminiRes = await this.getDetailByCoverImage(base64, file.mimeType!);
 
-                // Get title and author from image
-                const base64 = readFileSync(imagePath, 'base64');
-                const geminiRes = await this.getDetailByCoverImage(base64, file.mimeType);
-
-                // Create book
-                const req: CreateBook = {
-                    title: geminiRes.title,
-                    author: geminiRes.author ?? null,
-                    coverImage: 'book-cover/' + imageFilename,
-                    googleDriveId: file.parents[0],
-                };
-                await this.bookRepository.create(req);
-                logData[1] = 'Success';
-                log.write(logData.join(','));
+                    // Create book
+                    const req: CreateBook = {
+                        title: geminiRes.title,
+                        author: geminiRes.author ?? null,
+                        coverImage: 'book-cover/' + imageFilename,
+                        googleDriveId: file.parents?.[0] ?? '',
+                    };
+                    await this.bookRepository.create(req);
+                    logData[1] = 'Success';
+                    log.write(logData.join(','));
+                });
             } catch (error) {
                 logData[3] = 'Error';
                 logData[4] = String(error).split('\n').join(' ');
@@ -190,10 +187,5 @@ export default class BookService {
             }
         }
         log.end();
-    }
-
-    async compareImage(image1: string, image2: string) {
-        const result = await looksSame(image1, image2);
-        console.log(result);
     }
 }
